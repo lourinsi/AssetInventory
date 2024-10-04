@@ -1,40 +1,40 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, TextInput, View, TouchableOpacity, Alert, ScrollView, Image, Button } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, TextInput, View, TouchableOpacity, Alert, ScrollView, Image } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from 'expo-router';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { useItems } from './itemsContext';
 
 const AddItem = () => {
-  const [category, setCategory] = useState(''); // Dropdown or user input
+  const { addItem, categories, addCategory } = useItems();
+  const [categoryId, setCategoryId] = useState('');
   const [customCategory, setCustomCategory] = useState('');
   const [itemName, setItemName] = useState('');
   const [serialNo, setSerialNo] = useState('');
-  const [isServicable, setIsServicable] = useState<boolean>(true);
-  const [isDeployed, setIsDeployed] = useState<boolean>(true);
+  const [isServicable, setIsServicable] = useState(true);
+  const [isDeployed, setIsDeployed] = useState(true);
   const [owner, setOwner] = useState('');
-  const [dateOfPurchase, setDateOfPurchase] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [purchasePrice, setPurchasePrice] = useState('');
   const [purchaseFrom, setPurchaseFrom] = useState('');
   const [macAddress, setMacAddress] = useState('');
   const [ipAddress, setIpAddress] = useState('');
   const [remarks, setRemarks] = useState('');
+  const [dateOfPurchase, setDateOfPurchase] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-
   const navigation = useNavigation();
-  const categories = ['Laptops', 'Keyboards', 'Monitors', 'Mouse', 'Enter New Category']; // Dropdown options
 
+  // Handle Save Item
   const handleSave = () => {
-    const newCategory = customCategory || category;
-    if (!itemName || !newCategory || category === '' || category === 'Select Category') {
-      Alert.alert('Error', 'Please fill in all required fields and select a valid category.');
+    if (!itemName || (!categoryId && !customCategory)) {
+      Alert.alert('Error', 'Please fill in all required fields.');
       return;
     }
 
-    // Here, you can add the logic to save the item (context or state)
     const newItem = {
-      category: newCategory,
+      id: Math.random().toString(),
+      categoryId: customCategory ? Math.random().toString() : categoryId,
       itemName,
       serialNo,
       isServicable,
@@ -46,114 +46,93 @@ const AddItem = () => {
       macAddress,
       ipAddress,
       remarks,
-      image: selectedImage,
+      image: selectedImage || 'https://reactnative.dev/img/tiny_logo.png', // Use default image if none selected
     };
 
+    addItem(newItem);
+    if (customCategory) {
+      addCategory({ id: newItem.categoryId, name: customCategory, image: selectedImage || 'https://reactnative.dev/img/tiny_logo.png' });
+    }
     Alert.alert('Success', 'Item saved successfully!');
     navigation.goBack();
   };
 
-  const onDateChange = (event: any, selectedDate: any) => {
-    const currentDate = selectedDate || dateOfPurchase;
-    setShowDatePicker(false);
-    setDateOfPurchase(currentDate);
-  };
-
-  const renderCustomCategoryInput = () => {
-    if (category === 'Enter New Category') {
-      return (
-        <>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter custom category"
-            value={customCategory}
-            onChangeText={setCustomCategory}
-          />
-          {/* Image upload for custom category */}
-          <TouchableOpacity style={styles.uploadButton} onPress={handleImageUpload}>
-            <Text style={styles.uploadButtonText}>Upload Image</Text>
-          </TouchableOpacity>
-          {selectedImage && <Image source={{ uri: selectedImage }} style={styles.uploadedImage} />}
-        </>
-      );
-    }
-    return renderCategoryImage();
-  };
-
-  const renderCategoryImage = () => {
-    if (category && category !== 'Enter New Category') {
-      // Placeholder images for different categories
-      const categoryImages: { [key: string]: any } = {
-        Laptops: 'https://example.com/laptop.png',
-        Keyboards: 'https://example.com/keyboard.png',
-        Monitors: 'https://example.com/monitor.png',
-        Mouse: 'https://example.com/mouse.png',
-      };
-      return <Image source={{ uri: categoryImages[category] }} style={styles.categoryImage} />;
-    }
-    return null;
-  };
-
+  // Handle Image Upload
   const handleImageUpload = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (permissionResult.granted === false) {
+    if (!permissionResult.granted) {
       Alert.alert('Error', 'Permission to access gallery is required!');
       return;
     }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      allowsEditing: true,
-      quality: 1,
-    });
-
+    const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, quality: 1 });
     if (!result.canceled) {
       setSelectedImage(result.assets[0].uri);
     }
   };
 
+  // Handle Date Picker
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setDateOfPurchase(selectedDate);
+    }
+  };
+
+  // Render Category Image or Default
+  const renderCategoryImage = () => {
+    if (categoryId && categoryId !== 'Enter New Category') {
+      const category = categories.find((cat) => cat.id === categoryId);
+      const imageUri = category?.image || 'https://reactnative.dev/img/tiny_logo.png';
+      return <Image source={{ uri: imageUri }} style={styles.image} />;
+    }
+
+    if (categoryId === 'Enter New Category') {
+      const imageUri = selectedImage || 'https://reactnative.dev/img/tiny_logo.png';
+      return <Image source={{ uri: imageUri }} style={styles.image} />;
+    }
+
+    return null;
+  };
+
+  // Automatically display the category image on load
+  useEffect(() => {
+    if (categoryId && categoryId !== 'Enter New Category') {
+      renderCategoryImage();
+    }
+  }, [categoryId]);
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Add New Item</Text>
 
-      {/* ID (auto-filled) */}
-      {/* <Text style={styles.label}>ID</Text>
-      <TextInput style={styles.input} value={'Auto-generated ID'} editable={false} /> */}
+      {/* Category Picker */}
+      <Text style={styles.label}>Category Name</Text>
+      <Picker selectedValue={categoryId} onValueChange={(itemValue) => setCategoryId(itemValue)} style={styles.picker}>
+        {categories.map((category) => (
+          <Picker.Item key={category.id} label={category.name} value={category.id} />
+        ))}
+        <Picker.Item label="Enter New Category" value="Enter New Category" />
+      </Picker>
 
-      {/* Category Name */}
-      <View>
-        <Text style={styles.label}>Category Name</Text>
-        <Picker
-          selectedValue={category}
-          onValueChange={(itemValue) => setCategory(itemValue)}
-          style={styles.picker}
-        >
-          <Picker.Item label="Select Category" value="Select Category" />
-          {categories.map((cat) => (
-            <Picker.Item label={cat} value={cat} key={cat} />
-          ))}
-        </Picker>
-      </View>
+      {categoryId === 'Enter New Category' && (
+        <TextInput style={styles.input} placeholder="Enter New Category" value={customCategory} onChangeText={setCustomCategory} />
+      )}
 
-      {renderCustomCategoryInput()}
+      {renderCategoryImage()}
 
-      {/* Item Name */}
+      {categoryId === 'Enter New Category' && (
+        <TouchableOpacity style={styles.imageUpload} onPress={handleImageUpload}>
+          <Text style={styles.imageUploadText}>Upload Image</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Item Details */}
       <Text style={styles.label}>Item Name</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Item Name"
-        value={itemName}
-        onChangeText={setItemName}
-      />
+      <TextInput style={styles.input} value={itemName} onChangeText={setItemName} placeholder="Enter item name" />
 
-      {/* Serial Number */}
-      <Text style={styles.label}>Serial No.</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Serial Number"
-        value={serialNo}
-        onChangeText={setSerialNo}
-      />
+      <Text style={styles.label}>Serial No</Text>
+      <TextInput style={styles.input} value={serialNo} onChangeText={setSerialNo} placeholder="Enter serial number" />
 
       {/* Servicable */}
       <Text style={styles.label}>Servicable</Text>
@@ -189,105 +168,51 @@ const AddItem = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Owner */}
+      {/* Additional Fields */}
       <Text style={styles.label}>Owner</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Owner"
-        value={owner}
-        onChangeText={setOwner}
-      />
+      <TextInput style={styles.input} value={owner} onChangeText={setOwner} placeholder="Enter owner name" />
 
-      {/* Date of Purchase */}
       <Text style={styles.label}>Date of Purchase</Text>
       <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.input}>
         <Text>{dateOfPurchase.toDateString()}</Text>
       </TouchableOpacity>
-      {showDatePicker && (
-        <DateTimePicker
-          value={dateOfPurchase}
-          mode="date"
-          display="default"
-          onChange={onDateChange}
-        />
-      )}
+      {showDatePicker && <DateTimePicker value={dateOfPurchase} mode="date" display="default" onChange={handleDateChange} />}
 
-      {/* Purchase Price */}
       <Text style={styles.label}>Purchase Price</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Purchase Price"
-        value={purchasePrice}
-        keyboardType="numeric"
-        onChangeText={setPurchasePrice}
-      />
+      <TextInput style={styles.input} value={purchasePrice} onChangeText={setPurchasePrice} placeholder="Enter purchase price" />
 
-      {/* Purchase From */}
       <Text style={styles.label}>Purchase From</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Purchase From"
-        value={purchaseFrom}
-        onChangeText={setPurchaseFrom}
-      />
+      <TextInput style={styles.input} value={purchaseFrom} onChangeText={setPurchaseFrom} placeholder="Enter source" />
 
-      {/* MAC Address */}
-      <Text style={styles.label}>Mac Address</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="MAC Address"
-        value={macAddress}
-        onChangeText={setMacAddress}
-      />
+      <Text style={styles.label}>MAC Address</Text>
+      <TextInput style={styles.input} value={macAddress} onChangeText={setMacAddress} placeholder="Enter MAC address" />
 
-      {/* IP Address */}
       <Text style={styles.label}>Internet Protocol</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="IP Address"
-        value={ipAddress}
-        onChangeText={setIpAddress}
-      />
+      <TextInput style={styles.input} value={ipAddress} onChangeText={setIpAddress} placeholder="Enter IP address" />
 
-      {/* Remarks */}
       <Text style={styles.label}>Remarks</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Remarks"
-        value={remarks}
-        onChangeText={setRemarks}
-      />
-
+      <TextInput style={styles.input} value={remarks} onChangeText={setRemarks} placeholder="Enter any remarks" />
+      
       {/* Save Button */}
-      <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-        <Text style={styles.saveButtonText}>Save</Text>
+      <TouchableOpacity onPress={handleSave} style={styles.saveButton}>
+        <Text style={styles.saveButtonText}>Save Item</Text>
       </TouchableOpacity>
     </ScrollView>
   );
 };
-
-export default AddItem;
-
 const styles = StyleSheet.create({
   container: {
     padding: 20,
     backgroundColor: '#fff',
-    flexGrow: 1,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 10,
-    borderRadius: 5,
-    marginBottom: 20,
-  },
   label: {
     fontSize: 16,
+    fontWeight: 'bold',
     marginBottom: 5,
   },
   toggleContainer: {
@@ -308,45 +233,49 @@ const styles = StyleSheet.create({
     backgroundColor: '#007bff',
   },
   toggleText: {
-    color: 'Black',
+    color: 'black',
   },
-  picker: {
-    marginBottom: 20,
+  input: {
     borderWidth: 1,
     borderColor: '#ccc',
-    borderRadius: 5,
-    padding: 10,
-  },
-  saveButton: {
-    backgroundColor: '#007bff',
-    padding: 15,
-    borderRadius: 5,
-    alignItems: 'center',
-  },
-  saveButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  uploadButton: {
-    backgroundColor: '#007bff',
     padding: 10,
     borderRadius: 5,
-    marginBottom: 20,
-    alignItems: 'center',
+    marginBottom: 15,
   },
-  uploadButtonText: {
-    color: 'white',
-  },
-  uploadedImage: {
-    width: 100,
-    height: 100,
+  picker: {
+    borderWidth: 1,
+    marginBottom: 15,
+    padding: 10,
     borderRadius: 5,
-    marginBottom: 20,
   },
   categoryImage: {
     width: 100,
     height: 100,
     marginBottom: 20,
   },
+  imageUpload: {
+    backgroundColor: '#eee',
+    padding: 10,
+    marginBottom: 15,
+    alignItems: 'center',
+  },
+  image: {
+    width: 100,
+    height: 100,
+  },
+  imageUploadText: {
+    color: '#007bff',
+  },
+  saveButton: {
+    backgroundColor: '#007bff',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  saveButtonText: {
+    color: 'white',
+    fontSize: 18,
+  },
 });
+
+export default AddItem;
