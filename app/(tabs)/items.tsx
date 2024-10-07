@@ -48,6 +48,19 @@ const Items = () => {
     setModalVisible(false);
   };
 
+  const handleEdit = () => {
+    setModalVisible(false); // Close the modal before navigating
+    // Then navigate to the EditCategory page
+  };
+
+  const ItemsScreen = () => {
+    const { categories, items } = useItems(); // Example data fetching from context
+  
+    if (!categories.length || !items.length) {
+      return <Text>Loading...</Text>; // Display this while data is loading
+    };
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Items</Text>
@@ -66,27 +79,28 @@ const Items = () => {
 
       {/* Modal for Edit/Delete options */}
       <Modal
-        transparent={true}
-        visible={modalVisible}
-        animationType="slide"
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <TouchableOpacity onPress={() => {}} style={styles.modalOption}>
-              <Link href="/items/editCategory" style={styles.modalOptionText}>
-                <Text>Edit</Text>
-              </Link>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleDelete} style={styles.modalOption}>
-              <Text style={styles.modalOptionText}>Delete</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.modalOption}>
-              <Text style={styles.modalOptionText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+  transparent={true}
+  visible={modalVisible}
+  animationType="slide"
+  onRequestClose={() => setModalVisible(false)}
+>
+  <View style={styles.modalOverlay}>
+    <View style={styles.modalContent}>
+      <TouchableOpacity onPress={handleEdit} style={styles.modalOption}>
+        <Link href={{ pathname: '/items/editCategory', params: { categoryId: selectedCategoryId } }} style={styles.modalOptionText}>
+          <Text>Edit</Text>
+        </Link>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={handleDelete} style={styles.modalOption}>
+        <Text style={styles.modalOptionText}>Delete</Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.modalOption}>
+        <Text style={styles.modalOptionText}>Cancel</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+</Modal>
+
     </View>
   );
 };

@@ -81,26 +81,30 @@ const AddItem = () => {
 
   // Render Category Image or Default
   const renderCategoryImage = () => {
-    if (categoryId && categoryId !== 'Enter New Category') {
-      const category = categories.find((cat) => cat.id === categoryId);
-      const imageUri = category?.image || 'https://reactnative.dev/img/tiny_logo.png';
-      return <Image source={{ uri: imageUri }} style={styles.image} />;
-    }
+    const category = categories.find((cat) => cat.id === categoryId);
+    const imageUri = category?.image || 'https://reactnative.dev/img/tiny_logo.png'; // Default image if none
 
     if (categoryId === 'Enter New Category') {
       const imageUri = selectedImage || 'https://reactnative.dev/img/tiny_logo.png';
       return <Image source={{ uri: imageUri }} style={styles.image} />;
     }
-
-    return null;
+    return <Image source={{ uri: imageUri }} style={styles.image} />;
   };
+
+  
 
   // Automatically display the category image on load
   useEffect(() => {
-    if (categoryId && categoryId !== 'Enter New Category') {
-      renderCategoryImage();
+    if (!categoryId && categories.length > 0) {
+      setCategoryId(categories[0].id); // Set the first category as default
     }
+  }, [categories]);
+
+  useEffect(() => {
+    renderCategoryImage();
   }, [categoryId]);
+  
+  
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -108,12 +112,19 @@ const AddItem = () => {
 
       {/* Category Picker */}
       <Text style={styles.label}>Category Name</Text>
-      <Picker selectedValue={categoryId} onValueChange={(itemValue) => setCategoryId(itemValue)} style={styles.picker}>
-        {categories.map((category) => (
-          <Picker.Item key={category.id} label={category.name} value={category.id} />
-        ))}
-        <Picker.Item label="Enter New Category" value="Enter New Category" />
-      </Picker>
+      <Picker
+  selectedValue={categoryId}
+  onValueChange={(itemValue) => {
+    setCategoryId(itemValue);
+  }}
+  style={styles.picker}
+>
+  {categories.map((category) => (
+    <Picker.Item key={category.id} label={category.name} value={category.id} />
+  ))}
+  <Picker.Item label="Enter New Category" value="Enter New Category" />
+</Picker>
+
 
       {categoryId === 'Enter New Category' && (
         <TextInput style={styles.input} placeholder="Enter New Category" value={customCategory} onChangeText={setCustomCategory} />

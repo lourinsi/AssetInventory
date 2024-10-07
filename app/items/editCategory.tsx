@@ -13,23 +13,24 @@ type EditCategoryRouteParams = {
 
 const EditCategory = () => {
   const route = useRoute<RouteProp<EditCategoryRouteParams, 'params'>>();
-  const { categoryId } = route.params;
+  const { categoryId } = route.params; // Category ID from route params
   const { categories, editCategory } = useItems();
 
-  const [categoryName, setCategoryName] = useState('');
+  const [categoryName, setCategoryName] = useState<string>(''); // To store category name
   const [newCategoryName, setNewCategoryName] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(categoryId);
-  const [image, setImage] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isCreatingNewCategory, setIsCreatingNewCategory] = useState(false);
 
-  // Get unique categories from the context
+  // Fetch the list of categories for the picker
   const categoryList = categories.map(category => category.name);
 
   useEffect(() => {
+    // Find the category based on the categoryId passed in route params
     const currentCategory = categories.find(cat => cat.id === categoryId);
     if (currentCategory) {
-      setCategoryName(currentCategory.name);
-      setImage(currentCategory.image || null); // Get category image from context
+      setCategoryName(currentCategory.name); // Set the category name
+      setSelectedImage(currentCategory.image || null); // Set category image, default to null if no image
     }
   }, [categoryId, categories]);
 
@@ -41,7 +42,7 @@ const EditCategory = () => {
     }
 
     // Update the category
-    editCategory(categoryId, { name: selectedCategoryName, image });
+    editCategory(categoryId, { name: selectedCategoryName, image: selectedImage });
 
     Alert.alert('Success', 'Category updated.');
   };
@@ -55,16 +56,39 @@ const EditCategory = () => {
 
     const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, quality: 1 });
     if (!result.canceled) {
-      setImage(result.assets[0].uri);
+      setSelectedImage(result.assets[0].uri);
     }
   };
+
+  // Render Category Image or Default
+  const renderCategoryImage = () => {
+    const currentCategory = categories.find((cat) => cat.id === categoryId);
+    // const imageUri = selectedCategory === 'Enter New Category'
+    //   ? selectedImage || 'https://reactnative.dev/img/tiny_logo.png'
+    //   : currentCategory?.image || 'https://reactnative.dev/img/tiny_logo.png'; // Default image
+
+    const imageUri = currentCategory?.image || 'https://reactnative.dev/img/tiny_logo.png'; // Default image
+
+    return <Image source={{ uri: imageUri }} style={styles.image} />;
+  };
+
+  // const renderCategoryImage = () => {
+  //   const category = categories.find((cat) => cat.id === categoryId);
+  //   const imageUri = category?.image || 'https://reactnative.dev/img/tiny_logo.png'; // Default image if none
+
+  //   if (categoryId === 'Enter New Category') {
+  //     const imageUri = selectedImage || 'https://reactnative.dev/img/tiny_logo.png';
+  //     return <Image source={{ uri: imageUri }} style={styles.image} />;
+  //   }
+  //   return <Image source={{ uri: imageUri }} style={styles.image} />;
+  // };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Edit Category</Text>
 
       {/* Display current category */}
-      <Text style={styles.label}>Change {categoryName} to: </Text>
+      <Text style={styles.label}>Change "{categoryName}" to:</Text>
 
       {/* Category Picker */}
       <Picker
@@ -81,11 +105,8 @@ const EditCategory = () => {
         <Picker.Item label="Enter New Category" value="Enter New Category" />
       </Picker>
 
-      {image ? (
-        <Image source={{ uri: image }} style={styles.image} />
-      ) : (
-        <View style={styles.placeholder} />
-      )}
+      {/* Render category image */}
+      {renderCategoryImage()}
 
       {isCreatingNewCategory && (
         <TextInput
@@ -127,12 +148,6 @@ const styles = StyleSheet.create({
   image: {
     width: 100,
     height: 100,
-    marginBottom: 20,
-  },
-  placeholder: {
-    width: 100,
-    height: 100,
-    backgroundColor: '#ccc',
     marginBottom: 20,
   },
   input: {
