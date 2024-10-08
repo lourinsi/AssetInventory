@@ -1,33 +1,10 @@
 import { StyleSheet, Text, View, FlatList, TouchableOpacity, Alert, Image } from 'react-native';
-import React, { useState } from 'react';
+import React from 'react';
 import { MaterialIcons } from '@expo/vector-icons'; // for icons
+import { useItems } from '../items/itemsContext'; // Import the items context
 
-type InventoryLogItem = {
-  id: string;
-  category: string;
-  name: string;
-  dateLogged: string;
-  imageUrl: string;
-};
-
-const inventoryLog = () => {
-  const [logs, setLogs] = useState<InventoryLogItem[]>([
-    {
-      id: '1',
-      category: 'Laptop',
-      name: 'Laptop-Lenovo',
-      dateLogged: '2024-09-30',
-      imageUrl: 'https://via.placeholder.com/150',
-    },
-    {
-      id: '2',
-      category: 'Keyboard',
-      name: 'Keyboard',
-      dateLogged: '2024-09-29',
-      imageUrl: 'https://via.placeholder.com/150',
-    },
-    // More sample logs can be added here
-  ]);
+const InventoryLog = () => {
+  const { items, categories } = useItems(); // Fetch items and categories from the context
 
   const addLog = () => {
     // Logic for adding a new log (could open a form)
@@ -48,8 +25,8 @@ const inventoryLog = () => {
         {
           text: 'Delete',
           onPress: () => {
-            const updatedLogs = logs.filter((log) => log.id !== id);
-            setLogs(updatedLogs);
+            // Logic to delete log (if necessary)
+            Alert.alert('Log Deleted', `Log with id: ${id} was deleted.`);
           },
           style: 'destructive',
         },
@@ -62,20 +39,29 @@ const inventoryLog = () => {
     Alert.alert('View Reference', `Item ID: ${id}`);
   };
 
-  const renderLogItem = ({ item }: { item: InventoryLogItem }) => (
-    <View style={styles.logItemContainer}>
+  const renderLogItem = ({ item }: { item: any }) => {
+    // Find the category for this item by its categoryId
+    const category = categories.find((cat) => cat.id === item.categoryId);
 
-      <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
-      <View style={styles.logInfo}>
-        <Text style={styles.categoryName}>{item.category}</Text>
-        <Text style={styles.itemName}>{item.name}</Text>
-        <Text style={styles.dateLogged}>{item.dateLogged}</Text>
+    // Safely check if category exists, then access its properties
+    return (
+      <View style={styles.logItemContainer}>
+        <Image
+          source={{ uri: category?.image || 'https://via.placeholder.com/150' }}
+          style={styles.itemImage}
+        />
+        <View style={styles.logInfo}>
+          <Text style={styles.categoryName}>{category?.name || 'Unknown Category'}</Text>
+          <Text style={styles.details}>{item.itemName}</Text>
+          <Text style={styles.details}>{item.owner}</Text>
+          <Text style={styles.details}>{item.dateOfPurchase.toLocaleDateString()}</Text>
+        </View>
+        <TouchableOpacity style={styles.dotsMenu} onPress={() => showLogMenu(item.id)}>
+          <MaterialIcons name="more-vert" size={24} color="black" />
+        </TouchableOpacity>
       </View>
-      <TouchableOpacity style={styles.dotsMenu} onPress={() => showLogMenu(item.id)}>
-        <MaterialIcons name="more-vert" size={24} color="black" />
-      </TouchableOpacity>
-    </View>
-  );
+    );
+  };
 
   const showLogMenu = (id: string) => {
     // Simulate a menu with options
@@ -97,7 +83,7 @@ const inventoryLog = () => {
 
       {/* Logs List */}
       <FlatList
-        data={logs}
+        data={items} // Use items from context
         renderItem={renderLogItem}
         keyExtractor={(item) => item.id}
       />
@@ -110,7 +96,7 @@ const inventoryLog = () => {
   );
 };
 
-export default inventoryLog;
+export default InventoryLog;
 
 const styles = StyleSheet.create({
   container: {
@@ -143,12 +129,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  itemName: {
-    fontSize: 14,
-    color: '#666',
-  },
-  dateLogged: {
-    fontSize: 14,
+  details: {
+    fontSize: 12,
     color: '#666',
   },
   dotsMenu: {

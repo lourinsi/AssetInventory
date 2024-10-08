@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, FlatList, TouchableOpacity, Image, Modal } from 'react-native';
-import { Link } from 'expo-router';
+import { Link, useNavigation, useRouter } from 'expo-router';
 import { useItems } from '../items/itemsContext';
 
 const Items = () => {
@@ -44,13 +44,17 @@ const Items = () => {
   };
 
   const handleDelete = () => {
+    console.log('Deleted ');
     items.filter(item => item.categoryId === selectedCategoryId).forEach(item => deleteItem(item.id));
     setModalVisible(false);
   };
 
+  const router = useRouter();
+
   const handleEdit = () => {
+    console.log('Edit is opened');
     setModalVisible(false); // Close the modal before navigating
-    // Then navigate to the EditCategory page
+    router.push(`/items/editCategory?categoryId=${selectedCategoryId}`); // Navigate to the EditCategory screen
   };
 
   const ItemsScreen = () => {
@@ -60,6 +64,7 @@ const Items = () => {
       return <Text>Loading...</Text>; // Display this while data is loading
     };
   }
+  
 
   return (
     <View style={styles.container}>
@@ -79,27 +84,27 @@ const Items = () => {
 
       {/* Modal for Edit/Delete options */}
       <Modal
-  transparent={true}
-  visible={modalVisible}
-  animationType="slide"
-  onRequestClose={() => setModalVisible(false)}
->
-  <View style={styles.modalOverlay}>
-    <View style={styles.modalContent}>
-      <TouchableOpacity onPress={handleEdit} style={styles.modalOption}>
-        <Link href={{ pathname: '/items/editCategory', params: { categoryId: selectedCategoryId } }} style={styles.modalOptionText}>
-          <Text>Edit</Text>
-        </Link>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={handleDelete} style={styles.modalOption}>
-        <Text style={styles.modalOptionText}>Delete</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.modalOption}>
-        <Text style={styles.modalOptionText}>Cancel</Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-</Modal>
+      transparent={true}
+      visible={modalVisible}
+      animationType="slide"
+      onRequestClose={() => setModalVisible(false)}
+      >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <TouchableOpacity onPress={handleEdit} style={styles.modalOption}>
+          
+            <Text style={styles.modalOptionText}>Edit</Text>
+
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleDelete} style={styles.modalOption}>
+            <Text style={styles.modalOptionText}>Delete</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.modalOption}>
+            <Text style={styles.modalOptionText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
 
     </View>
   );

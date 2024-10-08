@@ -30,6 +30,7 @@ type ItemsContextType = {
   editItem: (id: string, updatedItem: Partial<Item>) => void;
   addCategory: (category: Category) => void;
   editCategory: (categoryId: string, updatedCategory: Partial<Category>) => void;
+  mergeCategories: (categoryId: string, existingCategoryId: string) => void;
 };
 
 const ItemsContext = createContext<ItemsContextType | undefined>(undefined);
@@ -73,22 +74,39 @@ export const ItemsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const editCategory = (categoryId: string, updatedCategory: Partial<Category>) => {
+
+    
     setCategories((prevCategories) =>
       prevCategories.map((cat) => (cat.id === categoryId ? { ...cat, ...updatedCategory } : cat))
     );
-
-    // Update all items with this category ID to the new category name
+  
+    // If category name is updated, we should also update all items under this category
     if (updatedCategory.name) {
       setItems((prevItems) =>
         prevItems.map((item) =>
-          item.categoryId === categoryId ? { ...item, categoryId: categoryId } : item
+          item.categoryId === categoryId ? { ...item, categoryId } : item // Items still refer to the correct categoryId
         )
       );
     }
   };
+  
+  const mergeCategories = (categoryId: string, existingCategoryId: string) => {
+    // Move all items from the category being merged to the existing category
+    setItems((prevItems) =>
+      prevItems.map((item) =>
+        item.categoryId === categoryId ? { ...item, categoryId: existingCategoryId } : item
+      )
+    );
+  
+    // Remove the category being merged
+    setCategories((prevCategories) => prevCategories.filter((cat) => cat.id !== categoryId));
+  };
+  
+  
+
 
   return (
-    <ItemsContext.Provider value={{ items, categories, addItem, deleteItem, editItem, addCategory, editCategory }}>
+    <ItemsContext.Provider value={{ items, categories, addItem, deleteItem, editItem, addCategory, editCategory, mergeCategories}}>
       {children}
     </ItemsContext.Provider>
   );

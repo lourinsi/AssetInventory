@@ -14,39 +14,105 @@ type EditCategoryRouteParams = {
 const EditCategory = () => {
   const route = useRoute<RouteProp<EditCategoryRouteParams, 'params'>>();
   const { categoryId } = route.params; // Category ID from route params
-  const { categories, editCategory } = useItems();
+  const { categories, items, editCategory, mergeCategories, addCategory } = useItems();
 
   const [categoryName, setCategoryName] = useState<string>(''); // To store category name
   const [newCategoryName, setNewCategoryName] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(categoryId);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isCreatingNewCategory, setIsCreatingNewCategory] = useState(false);
+  const [isImageManuallyChanged, setIsImageManuallyChanged] = useState(false); // New flag to track manual image change
 
-  // Fetch the list of categories for the picker
-  const categoryList = categories.map(category => category.name);
-
+  // When the component mounts or categoryId changes, set initial values
   useEffect(() => {
-    // Find the category based on the categoryId passed in route params
     const currentCategory = categories.find(cat => cat.id === categoryId);
     if (currentCategory) {
-      setCategoryName(currentCategory.name); // Set the category name
-      setSelectedImage(currentCategory.image || null); // Set category image, default to null if no image
+      setCategoryName(currentCategory.name);
+      setSelectedCategory(currentCategory.id);
+      setSelectedImage(currentCategory.image || null);
+      setIsImageManuallyChanged(false); // Reset this when loading a new category
     }
   }, [categoryId, categories]);
 
+  // This effect runs when the selected category changes
+  useEffect(() => {
+    if (!isImageManuallyChanged) {
+      const currentCategory = categories.find(cat => cat.id === selectedCategory);
+      if (currentCategory) {
+        setSelectedImage(currentCategory.image || 'https://reactnative.dev/img/tiny_logo.png');
+      } else if (selectedCategory === 'Enter New Category') {
+        setSelectedImage(null); // Allow new category to have a custom image
+      }
+    }
+  }, [selectedCategory, categories, isImageManuallyChanged]);
+
+  // const handleSave = () => {
+  //   const selectedCategoryName = isCreatingNewCategory ? newCategoryName : categories.find(cat => cat.id === selectedCategory)?.name;
+    
+  //   if (!selectedCategoryName) {
+  //     Alert.alert('Error', 'Please select or enter a category name.');
+  //     return;
+  //   }
+
+  //   // Check for duplicate categories
+  //   const duplicateCategory = categories.find(
+  //     cat => cat.name.toLowerCase() === selectedCategoryName.toLowerCase() && cat.id !== categoryId
+  //   );
+
+  //   if (duplicateCategory) {
+  //     // If a duplicate category exists, merge the categories
+  //     mergeCategories(categoryId, duplicateCategory.id);
+  //     Alert.alert('Success', `Category merged with "${duplicateCategory.name}".`);
+  //   } else {
+  //     if (!isCreatingNewCategory) {
+
+  //               // Update the existing category with the new image and name
+  //               editCategory(categoryId, { name: selectedCategoryName, image: selectedImage });
+  //               Alert.alert('Success', 'Category updated.');
+
+  //       // Add the new category
+  //       addCategory({ id: Math.random().toString(), name: selectedCategoryName, image: selectedImage });
+  //       Alert.alert('Success', 'Category added.');
+  //     } else {
+  //       // Update the existing category with the new image and name
+  //       editCategory(categoryId, { name: selectedCategoryName, image: selectedImage });
+  //       Alert.alert('Success', 'Category updated.');
+  //     }
+  //   }
+  // };
+
   const handleSave = () => {
-    const selectedCategoryName = isCreatingNewCategory ? newCategoryName : selectedCategory;
+    const selectedCategoryName = isCreatingNewCategory ? newCategoryName : categories.find(cat => cat.id === selectedCategory)?.name;
+  
     if (!selectedCategoryName) {
       Alert.alert('Error', 'Please select or enter a category name.');
       return;
     }
-
-    // Update the category
-    editCategory(categoryId, { name: selectedCategoryName, image: selectedImage });
-
-    Alert.alert('Success', 'Category updated.');
+  
+    // Check for duplicate categories
+    const duplicateCategory = categories.find(
+      cat => cat.name.toLowerCase() === selectedCategoryName.toLowerCase() && cat.id !== categoryId
+    );
+  
+    if (duplicateCategory) {
+      // If a duplicate category exists, merge the categories and apply the image
+      mergeCategories(categoryId, duplicateCategory.id);
+      editCategory(duplicateCategory.id, { name: duplicateCategory.name, image: selectedImage }); // Update image
+      Alert.alert('Success', `Category merged with "${duplicateCategory.name}". Image updated.`);
+    } else {
+      if (isCreatingNewCategory) {
+        // Add the new category with the uploaded/changed image
+        addCategory({ id: Math.random().toString(), name: selectedCategoryName, image: selectedImage });
+        Alert.alert('Success', 'New category added with image.');
+      } else {
+        // Update the existing category with the new name and image
+        editCategory(categoryId, { name: selectedCategoryName, image: selectedImage });
+        Alert.alert('Success', 'Category updated with new image.');
+      }
+    }
   };
 
+  
   const handleImageUpload = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
@@ -57,55 +123,37 @@ const EditCategory = () => {
     const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, quality: 1 });
     if (!result.canceled) {
       setSelectedImage(result.assets[0].uri);
+      setIsImageManuallyChanged(true); // Set this flag to true when the image is manually uploaded
     }
   };
 
-  // Render Category Image or Default
-  const renderCategoryImage = () => {
-    const currentCategory = categories.find((cat) => cat.id === categoryId);
-    // const imageUri = selectedCategory === 'Enter New Category'
-    //   ? selectedImage || 'https://reactnative.dev/img/tiny_logo.png'
-    //   : currentCategory?.image || 'https://reactnative.dev/img/tiny_logo.png'; // Default image
-
-    const imageUri = currentCategory?.image || 'https://reactnative.dev/img/tiny_logo.png'; // Default image
-
-    return <Image source={{ uri: imageUri }} style={styles.image} />;
-  };
-
-  // const renderCategoryImage = () => {
-  //   const category = categories.find((cat) => cat.id === categoryId);
-  //   const imageUri = category?.image || 'https://reactnative.dev/img/tiny_logo.png'; // Default image if none
-
-  //   if (categoryId === 'Enter New Category') {
-  //     const imageUri = selectedImage || 'https://reactnative.dev/img/tiny_logo.png';
-  //     return <Image source={{ uri: imageUri }} style={styles.image} />;
-  //   }
-  //   return <Image source={{ uri: imageUri }} style={styles.image} />;
-  // };
+  const renderCategoryImage = () => (
+    <Image
+      source={{ uri: selectedImage || 'https://reactnative.dev/img/tiny_logo.png' }} // Default image if none
+      style={styles.image}
+    />
+  );
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Edit Category</Text>
-
-      {/* Display current category */}
       <Text style={styles.label}>Change "{categoryName}" to:</Text>
 
-      {/* Category Picker */}
       <Picker
         selectedValue={selectedCategory}
         onValueChange={(itemValue) => {
           setSelectedCategory(itemValue);
           setIsCreatingNewCategory(itemValue === 'Enter New Category');
+          setIsImageManuallyChanged(false); // Reset image change flag on category change
         }}
         style={styles.picker}
       >
-        {categoryList.map((cat) => (
-          <Picker.Item label={cat} value={cat} key={cat} />
+        {categories.map((cat) => (
+          <Picker.Item label={cat.name} value={cat.id} key={cat.id} />
         ))}
         <Picker.Item label="Enter New Category" value="Enter New Category" />
       </Picker>
 
-      {/* Render category image */}
       {renderCategoryImage()}
 
       {isCreatingNewCategory && (
@@ -117,12 +165,12 @@ const EditCategory = () => {
         />
       )}
 
-      {/* Image Upload Button */}
       <TouchableOpacity onPress={handleImageUpload} style={styles.uploadButton}>
-        <Text style={styles.uploadButtonText}>Upload Image</Text>
+        <Text style={styles.uploadButtonText}>
+          {isCreatingNewCategory ? 'Upload Image' : 'Change Image'}
+        </Text>
       </TouchableOpacity>
 
-      {/* Save Button */}
       <Button title="Save Changes" onPress={handleSave} />
     </View>
   );
