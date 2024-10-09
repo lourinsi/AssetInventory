@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, TextInput, Button, Image, TouchableOpacity, Text, Alert, StyleSheet } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useItems } from '../items/itemsContext';
-import { RouteProp, useRoute } from '@react-navigation/native';
+import { useNavigation, RouteProp, useRoute } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
 
 type EditCategoryRouteParams = {
@@ -23,6 +23,8 @@ const EditCategory = () => {
   const [isCreatingNewCategory, setIsCreatingNewCategory] = useState(false);
   const [isImageManuallyChanged, setIsImageManuallyChanged] = useState(false); // New flag to track manual image change
 
+  const navigation = useNavigation();
+  
   // When the component mounts or categoryId changes, set initial values
   useEffect(() => {
     const currentCategory = categories.find(cat => cat.id === categoryId);
@@ -46,71 +48,92 @@ const EditCategory = () => {
     }
   }, [selectedCategory, categories, isImageManuallyChanged]);
 
-  // const handleSave = () => {
-  //   const selectedCategoryName = isCreatingNewCategory ? newCategoryName : categories.find(cat => cat.id === selectedCategory)?.name;
-    
-  //   if (!selectedCategoryName) {
-  //     Alert.alert('Error', 'Please select or enter a category name.');
-  //     return;
-  //   }
-
-  //   // Check for duplicate categories
-  //   const duplicateCategory = categories.find(
-  //     cat => cat.name.toLowerCase() === selectedCategoryName.toLowerCase() && cat.id !== categoryId
-  //   );
-
-  //   if (duplicateCategory) {
-  //     // If a duplicate category exists, merge the categories
-  //     mergeCategories(categoryId, duplicateCategory.id);
-  //     Alert.alert('Success', `Category merged with "${duplicateCategory.name}".`);
-  //   } else {
-  //     if (!isCreatingNewCategory) {
-
-  //               // Update the existing category with the new image and name
-  //               editCategory(categoryId, { name: selectedCategoryName, image: selectedImage });
-  //               Alert.alert('Success', 'Category updated.');
-
-  //       // Add the new category
-  //       addCategory({ id: Math.random().toString(), name: selectedCategoryName, image: selectedImage });
-  //       Alert.alert('Success', 'Category added.');
-  //     } else {
-  //       // Update the existing category with the new image and name
-  //       editCategory(categoryId, { name: selectedCategoryName, image: selectedImage });
-  //       Alert.alert('Success', 'Category updated.');
-  //     }
-  //   }
-  // };
-
   const handleSave = () => {
+    alert("Saved");
     const selectedCategoryName = isCreatingNewCategory ? newCategoryName : categories.find(cat => cat.id === selectedCategory)?.name;
-  
+    
+    // alert(`Selected Category: ${selectedCategory}, Category Name: ${categoryName}`);
+
     if (!selectedCategoryName) {
       Alert.alert('Error', 'Please select or enter a category name.');
       return;
     }
-  
+
     // Check for duplicate categories
     const duplicateCategory = categories.find(
       cat => cat.name.toLowerCase() === selectedCategoryName.toLowerCase() && cat.id !== categoryId
+      
     );
-  
-    if (duplicateCategory) {
-      // If a duplicate category exists, merge the categories and apply the image
-      mergeCategories(categoryId, duplicateCategory.id);
-      editCategory(duplicateCategory.id, { name: duplicateCategory.name, image: selectedImage }); // Update image
-      Alert.alert('Success', `Category merged with "${duplicateCategory.name}". Image updated.`);
+    
+    if(selectedCategoryName === categoryName){
+        alert("Same Category, no changes should apply");
+    }else if(selectedCategory === 'Enter New Category' && duplicateCategory){
+        alert('Error, Category already exists');
+        return;
+    }else if (duplicateCategory) {
+        // If a duplicate category exists, merge the categories and update the image
+        alert("Duplicate found. Is now merging....");
+
+        // Update the image of the duplicate category if a new image was selected
+        if (isImageManuallyChanged) {
+          editCategory(duplicateCategory.id, { name: duplicateCategory.name, image: selectedImage });
+          alert(`Image for ${duplicateCategory.name} updated`);
+        }
+
+        mergeCategories(categoryId, duplicateCategory.id);
+        Alert.alert('Success', `Category merged with "${duplicateCategory.name}".`);
     } else {
-      if (isCreatingNewCategory) {
-        // Add the new category with the uploaded/changed image
+      if (!isCreatingNewCategory) {
+
+                // Update the existing category with the new image and name
+                editCategory(categoryId, { name: selectedCategoryName, image: selectedImage });
+                Alert.alert('Success', 'Category updated.');
+
+        // Add the new category
         addCategory({ id: Math.random().toString(), name: selectedCategoryName, image: selectedImage });
-        Alert.alert('Success', 'New category added with image.');
+        alert(`Image: ${selectedImage}`);
+        Alert.alert('Success', 'Category added.');
       } else {
-        // Update the existing category with the new name and image
+        // Update the existing category with the new image and name
         editCategory(categoryId, { name: selectedCategoryName, image: selectedImage });
-        Alert.alert('Success', 'Category updated with new image.');
+        
+        Alert.alert('Success', 'Category updated.');
       }
+      
     }
+    navigation.goBack();
   };
+
+  // const handleSave = () => {
+  //   const selectedCategoryName = isCreatingNewCategory ? newCategoryName : categories.find(cat => cat.id === selectedCategory)?.name;
+  
+  //   if (!selectedCategoryName) {
+  //     Alert.alert('Error', 'Please select or enter a category name.');
+  //     return;
+  //   }
+  
+  //   // Check for duplicate categories
+  //   const duplicateCategory = categories.find(
+  //     cat => cat.name.toLowerCase() === selectedCategoryName.toLowerCase() && cat.id !== categoryId
+  //   );
+  
+  //   if (duplicateCategory) {
+  //     // If a duplicate category exists, merge the categories and apply the image
+  //     mergeCategories(categoryId, duplicateCategory.id);
+  //     editCategory(duplicateCategory.id, { name: duplicateCategory.name, image: selectedImage }); // Update image
+  //     Alert.alert('Success', `Category merged with "${duplicateCategory.name}". Image updated.`);
+  //   } else {
+  //     if (isCreatingNewCategory) {
+  //       // Add the new category with the uploaded/changed image
+  //       addCategory({ id: Math.random().toString(), name: selectedCategoryName, image: selectedImage });
+  //       Alert.alert('Success', 'New category added with image.');
+  //     } else {
+  //       // Update the existing category with the new name and image
+  //       editCategory(categoryId, { name: selectedCategoryName, image: selectedImage });
+  //       Alert.alert('Success', 'Category updated with new image.');
+  //     }
+  //   }
+  // };
 
   
   const handleImageUpload = async () => {

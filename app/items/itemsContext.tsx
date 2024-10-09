@@ -6,7 +6,7 @@ type Category = {
   image: string | null;
 };
 
-type Item = {
+export type Item = {
   id: string;
   categoryId: string; // Refers to the Category by its ID
   itemName: string;
@@ -20,6 +20,7 @@ type Item = {
   macAddress: string;
   ipAddress: string;
   remarks: string;
+  image?: string;  // Add this line for image support
 };
 
 type ItemsContextType = {
@@ -31,6 +32,8 @@ type ItemsContextType = {
   addCategory: (category: Category) => void;
   editCategory: (categoryId: string, updatedCategory: Partial<Category>) => void;
   mergeCategories: (categoryId: string, existingCategoryId: string) => void;
+  getItemById: (id: string) => Item | undefined;
+  updateItem: (id: string, updatedItem: Partial<Item>) => void;
 };
 
 const ItemsContext = createContext<ItemsContextType | undefined>(undefined);
@@ -38,7 +41,7 @@ const ItemsContext = createContext<ItemsContextType | undefined>(undefined);
 export const useItems = () => {
   const context = useContext(ItemsContext);
   if (!context) {
-    throw new Error('useItems must be used within a ItemsProvider');
+    throw new Error('useItems must be used within an ItemsProvider');
   }
   return context;
 };
@@ -74,39 +77,41 @@ export const ItemsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const editCategory = (categoryId: string, updatedCategory: Partial<Category>) => {
-
-    
     setCategories((prevCategories) =>
       prevCategories.map((cat) => (cat.id === categoryId ? { ...cat, ...updatedCategory } : cat))
     );
-  
-    // If category name is updated, we should also update all items under this category
+
     if (updatedCategory.name) {
       setItems((prevItems) =>
         prevItems.map((item) =>
-          item.categoryId === categoryId ? { ...item, categoryId } : item // Items still refer to the correct categoryId
+          item.categoryId === categoryId ? { ...item, categoryId } : item
         )
       );
     }
   };
-  
+
   const mergeCategories = (categoryId: string, existingCategoryId: string) => {
-    // Move all items from the category being merged to the existing category
     setItems((prevItems) =>
       prevItems.map((item) =>
         item.categoryId === categoryId ? { ...item, categoryId: existingCategoryId } : item
       )
     );
-  
-    // Remove the category being merged
     setCategories((prevCategories) => prevCategories.filter((cat) => cat.id !== categoryId));
   };
-  
-  
 
+  const getItemById = (id: string) => {
+    return items.find(item => item.id === id);
+  };
+
+  const updateItem = (id: string, updatedItem: Partial<Item>) => {
+    setItems((prevItems) =>
+      prevItems.map((item) => (item.id === id ? { ...item, ...updatedItem } : item))
+    );
+  };
+  
 
   return (
-    <ItemsContext.Provider value={{ items, categories, addItem, deleteItem, editItem, addCategory, editCategory, mergeCategories}}>
+    <ItemsContext.Provider value={{ items, categories, addItem, deleteItem, editItem, addCategory, editCategory, mergeCategories, getItemById, updateItem }}>
       {children}
     </ItemsContext.Provider>
   );
