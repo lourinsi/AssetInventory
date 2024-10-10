@@ -25,37 +25,56 @@ const AddItem = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const navigation = useNavigation();
 
-  // Handle Save Item
-  const handleSave = () => {
-    if (!itemName || (!categoryId && !customCategory)) {
-      Alert.alert('Error', 'Please fill in all required fields.');
+ // Handle Save Item
+const handleSave = () => {
+  if (!itemName || (!categoryId && !customCategory)) {
+    Alert.alert('Error', 'Please fill in all required fields.');
+    return;
+  }
+
+  // Check if the custom category already exists
+  if (customCategory) {
+    const existingCategory = categories.find(
+      (cat) => cat.name.toLowerCase() === customCategory.toLowerCase()
+    );
+
+    if (existingCategory) {
+      Alert.alert('Error', 'This category already exists. Please choose a different name.');
       return;
     }
+  }
 
-    const newItem = {
-      id: Math.random().toString(),
-      categoryId: customCategory ? Math.random().toString() : categoryId,
-      itemName,
-      serialNo,
-      isServicable,
-      isDeployed,
-      owner,
-      dateOfPurchase,
-      purchasePrice,
-      purchaseFrom,
-      macAddress,
-      ipAddress,
-      remarks,
-      image: selectedImage || 'https://reactnative.dev/img/tiny_logo.png', // Use default image if none selected
-    };
-
-    addItem(newItem);
-    if (customCategory) {
-      addCategory({ id: newItem.categoryId, name: customCategory, image: selectedImage || 'https://reactnative.dev/img/tiny_logo.png' });
-    }
-    Alert.alert('Success', 'Item saved successfully!');
-    navigation.goBack();
+  const newItem = {
+    id: Math.random().toString(),
+    categoryId: customCategory ? Math.random().toString() : categoryId,
+    itemName,
+    serialNo,
+    isServicable,
+    isDeployed,
+    owner,
+    dateOfPurchase,
+    purchasePrice,
+    purchaseFrom,
+    macAddress,
+    ipAddress,
+    remarks,
+    image: selectedImage || 'https://reactnative.dev/img/tiny_logo.png', // Use default image if none selected
   };
+
+  addItem(newItem);
+
+  if (customCategory) {
+    addCategory({
+      id: newItem.categoryId,
+      name: customCategory,
+      image: selectedImage || 'https://reactnative.dev/img/tiny_logo.png',
+    });
+  }
+
+  Alert.alert('Success', 'Item saved successfully!');
+  navigation.goBack();
+};
+
 
   // Handle Image Upload
   const handleImageUpload = async () => {
@@ -113,6 +132,7 @@ const AddItem = () => {
       {/* Category Picker */}
       <Text style={styles.label}>Category Name</Text>
       <Picker
+      
   selectedValue={categoryId}
   onValueChange={(itemValue) => {
     setCategoryId(itemValue);

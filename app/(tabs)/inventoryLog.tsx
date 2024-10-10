@@ -1,43 +1,26 @@
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, Alert, Image } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, Alert, Image, Platform, Modal } from 'react-native';
 import React, { useState } from 'react';
 import { MaterialIcons } from '@expo/vector-icons'; // for icons
+import { useItems } from '../items/itemsContext'; // Import the items context
+import { Link, router } from 'expo-router';
 
-type InventoryLogItem = {
-  id: string;
-  category: string;
-  name: string;
-  dateLogged: string;
-  imageUrl: string;
-};
-
-const inventoryLog = () => {
-  const [logs, setLogs] = useState<InventoryLogItem[]>([
-    {
-      id: '1',
-      category: 'Laptop',
-      name: 'Laptop-Lenovo',
-      dateLogged: '2024-09-30',
-      imageUrl: 'https://via.placeholder.com/150',
-    },
-    {
-      id: '2',
-      category: 'Keyboard',
-      name: 'Keyboard',
-      dateLogged: '2024-09-29',
-      imageUrl: 'https://via.placeholder.com/150',
-    },
-    // More sample logs can be added here
-  ]);
+const InventoryLog = () => {
+  const { items, categories } = useItems(); // Fetch items and categories from the context
 
   const addLog = () => {
     // Logic for adding a new log (could open a form)
     Alert.alert('Add New Log', 'This will trigger the add log form.');
+    
   };
 
   const editLog = (id: string) => {
     // Logic to edit a log
+    
     Alert.alert('Edit Log', `Editing log with id: ${id}`);
+    setShowModal(false);
+    router.push({ pathname: '../items/editLog', params: { id } }); // Navigate to the EditCategory screen
   };
+  
 
   const deleteLog = (id: string) => {
     Alert.alert(
@@ -48,8 +31,8 @@ const inventoryLog = () => {
         {
           text: 'Delete',
           onPress: () => {
-            const updatedLogs = logs.filter((log) => log.id !== id);
-            setLogs(updatedLogs);
+            // Logic to delete log (if necessary)
+            Alert.alert('Log Deleted', `Log with id: ${id} was deleted.`);
           },
           style: 'destructive',
         },
@@ -62,32 +45,71 @@ const inventoryLog = () => {
     Alert.alert('View Reference', `Item ID: ${id}`);
   };
 
-  const renderLogItem = ({ item }: { item: InventoryLogItem }) => (
-    <View style={styles.logItemContainer}>
+  const renderLogItem = ({ item }: { item: any }) => {
+    // Find the category for this item by its categoryId
+    const category = categories.find((cat) => cat.id === item.categoryId);
 
-      <Image source={{ uri: item.imageUrl }} style={styles.itemImage} />
-      <View style={styles.logInfo}>
-        <Text style={styles.categoryName}>{item.category}</Text>
-        <Text style={styles.itemName}>{item.name}</Text>
-        <Text style={styles.dateLogged}>{item.dateLogged}</Text>
+    // Safely check if category exists, then access its properties
+    return (
+      <View style={styles.logItemContainer}>
+        <Image
+          source={{ uri: category?.image || 'https://via.placeholder.com/150' }}
+          style={styles.itemImage}
+        />
+        <View style={styles.logInfo}>
+        <Text style={styles.categoryName}>{item.itemName}</Text>
+          <Text style={styles.details}>{category?.name || 'Unknown Category'}</Text>
+          
+          <Text style={styles.details}>{item.owner}</Text>
+          <Text style={styles.details}>{item.dateOfPurchase.toLocaleDateString()}</Text>
+        </View>
+        <TouchableOpacity style={styles.dotsMenu} onPress={() => showLogMenu(item.id)}>
+          <MaterialIcons name="more-vert" size={24} color="black" />
+        </TouchableOpacity>
       </View>
-      <TouchableOpacity style={styles.dotsMenu} onPress={() => showLogMenu(item.id)}>
-        <MaterialIcons name="more-vert" size={24} color="black" />
-      </TouchableOpacity>
-    </View>
-  );
+    );
+  };
+
+  const [showModal, setShowModal] = useState(false);
+  const [selectedId, setSelectedId] = useState('');
 
   const showLogMenu = (id: string) => {
     // Simulate a menu with options
-    Alert.alert(
-      'Log Options',
-      '',
-      [
-        { text: 'Edit', onPress: () => editLog(id) },
-        { text: 'Delete', onPress: () => deleteLog(id), style: 'destructive' },
-        { text: 'View Ref', onPress: () => viewRef(id) },
-        { text: 'Cancel', style: 'cancel' },
-      ]
+    if (Platform.OS === 'web') {
+      setSelectedId(id);
+      setShowModal(true);
+    } else {
+      Alert.alert(
+        'Log Options',
+        '',
+        [
+          { text: 'Edit', onPress: () => editLog(id) },
+          { text: 'Delete', onPress: () => deleteLog(id), style: 'destructive' },
+          { text: 'View Ref', onPress: () => viewRef(id) },
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      );
+    }
+
+  };
+
+  const LogOptionsModal = () => {
+    return (
+      <View style={styles.modalContainer}>
+        <Text style={styles.modalTitle}>Log Options</Text>
+        <TouchableOpacity style={styles.modalButton} onPress={() => editLog(selectedId)}>
+          <Text style={styles.modalButtonText}>Edit</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.modalButton} onPress={() => deleteLog(selectedId)}>
+          <Text style={styles.modalButtonText}>Delete</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.modalButton} onPress={() => viewRef(selectedId)}>
+          <Text style={styles.modalButtonText}>View Ref</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.modalButton} onPress={() => setShowModal(false)}>
+          <Text style={styles.modalButtonText}>Cancel</Text>
+        </TouchableOpacity>
+      </View>
     );
   };
 
@@ -97,20 +119,28 @@ const inventoryLog = () => {
 
       {/* Logs List */}
       <FlatList
-        data={logs}
+        data={items} // Use items from context
         renderItem={renderLogItem}
         keyExtractor={(item) => item.id}
       />
 
       {/* Sticky Add Button */}
-      <TouchableOpacity style={styles.addButton} onPress={addLog}>
+      {/* <TouchableOpacity style={styles.addButton} onPress={addLog}>
         <MaterialIcons name="add" size={30} color="white" />
-      </TouchableOpacity>
+      </TouchableOpacity> */}
+      <Link href="/items/addItem" style={styles.addButton}>
+        <Text style={styles.addButtonText}>+ Add</Text>
+      </Link>
+
+      <Modal visible={showModal} animationType="slide">
+        <LogOptionsModal />
+      </Modal>
+
     </View>
   );
 };
 
-export default inventoryLog;
+export default InventoryLog;
 
 const styles = StyleSheet.create({
   container: {
@@ -143,31 +173,47 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  itemName: {
-    fontSize: 14,
-    color: '#666',
-  },
-  dateLogged: {
-    fontSize: 14,
+  details: {
+    fontSize: 12,
     color: '#666',
   },
   dotsMenu: {
     padding: 5,
-  },
-  addButton: {
+  },  addButton: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 30,
     right: 20,
     backgroundColor: '#007bff',
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    padding: 10,
+    borderRadius: 50,
+    alignItems: 'center',
+  },
+  addButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  modalContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
+    backgroundColor: 'white',
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  modalButton: {
+    padding: 10,
+    backgroundColor: '#007bff',
+    borderRadius: 5,
+    marginBottom: 10,
+  },
+  modalButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
